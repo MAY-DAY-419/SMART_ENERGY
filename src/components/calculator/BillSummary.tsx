@@ -127,6 +127,56 @@ const BillSummary: React.FC = () => {
     doc.save('energy-report.pdf');
   };
 
+  const exportFullPageToPDF = async () => {
+    try {
+      // Lazy-load html2canvas to avoid import-time side-effects during server/build
+      const html2canvas = (await import('html2canvas')).default;
+
+      const root = document.documentElement;
+      // Temporarily set background to white for better capture
+      const previousBg = root.style.backgroundColor;
+      root.style.backgroundColor = '#ffffff';
+
+      const element = document.body;
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, windowWidth: document.documentElement.scrollWidth, windowHeight: document.documentElement.scrollHeight });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      if (pdfHeight <= pdf.internal.pageSize.getHeight()) {
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      } else {
+        // Split into multiple pages
+        let remainingHeight = imgProps.height;
+        const pageHeightPx = (imgProps.width * pdf.internal.pageSize.getHeight()) / pdfWidth;
+        let position = 0;
+
+        while (remainingHeight > 0) {
+          const canvasPage = document.createElement('canvas');
+          canvasPage.width = canvas.width;
+          canvasPage.height = Math.min(canvas.height - position, Math.round(pageHeightPx));
+          const ctx = canvasPage.getContext('2d');
+          if (!ctx) break;
+          ctx.drawImage(canvas, 0, position, canvas.width, canvasPage.height, 0, 0, canvasPage.width, canvasPage.height);
+          const pageData = canvasPage.toDataURL('image/png');
+          pdf.addImage(pageData, 'PNG', 0, 0, pdfWidth, pdf.internal.pageSize.getHeight());
+          remainingHeight -= canvasPage.height;
+          position += canvasPage.height;
+          if (remainingHeight > 0) pdf.addPage();
+        }
+      }
+
+      pdf.save('echowatt-full-report.pdf');
+      root.style.backgroundColor = previousBg;
+    } catch (err) {
+      console.error('Full page PDF export failed', err);
+      alert('Failed to export full page to PDF. Check console for details.');
+    }
+  };
+
   if (devices.length === 0) {
     return null;
   }
@@ -162,6 +212,13 @@ const BillSummary: React.FC = () => {
           >
             <Download className="w-4 h-4" />
             PDF
+          </button>
+          <button
+            onClick={exportFullPageToPDF}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300"
+          >
+            <Download className="w-4 h-4" />
+            Export Full Page
           </button>
         </div>
       </div>

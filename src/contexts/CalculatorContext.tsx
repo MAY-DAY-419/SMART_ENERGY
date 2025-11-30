@@ -59,16 +59,34 @@ export const CalculatorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         // Load devices for each room
         const roomsWithDevices = await Promise.all(
           roomsData.map(async (room) => {
-            const { data: devicesData } = await supabase
+            const { data: devicesData, error: devicesError } = await supabase
               .from('devices')
               .select('*')
               .eq('room_id', room.id);
+
+            if (devicesError) {
+              console.error('Error loading devices for room', room.id, devicesError);
+            }
+
+            // Normalize DB fields (snake_case) to app shape (camelCase)
+            /* eslint-disable @typescript-eslint/no-explicit-any */
+            const normalizedDevices = (devicesData || []).map((d: any) => ({
+              id: d.id,
+              name: d.name,
+              brand: d.brand,
+              wattage: Number(d.wattage) || 0,
+              hoursPerDay: Number(d.hours_per_day ?? d.hoursPerDay ?? 0),
+              category: d.category,
+              roomId: d.room_id ?? d.roomId,
+              isCustom: d.is_custom ?? d.isCustom ?? false,
+            }));
+            /* eslint-enable @typescript-eslint/no-explicit-any */
 
             return {
               id: room.id,
               name: room.name,
               icon: room.icon,
-              devices: devicesData || [],
+              devices: normalizedDevices,
             };
           })
         );
@@ -85,10 +103,36 @@ export const CalculatorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       if (historyError) throw historyError;
       if (historyData) {
-        setBillHistory(historyData.map(h => ({
-          ...h,
-          rooms: JSON.parse(h.rooms as string),
-        })));
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        const safeHistory = historyData.map((h: any) => {
+          let roomsParsed = [];
+          try {
+            if (typeof h.rooms === 'string') {
+              roomsParsed = JSON.parse(h.rooms);
+            } else if (Array.isArray(h.rooms)) {
+              roomsParsed = h.rooms;
+            }
+          } catch (e) {
+            console.error('Failed to parse rooms for history item', h.id, e);
+            roomsParsed = [];
+          }
+
+          return {
+            id: h.id,
+            timestamp: h.timestamp,
+            month: h.month,
+            totalCost: Number(h.total_cost ?? h.totalCost) || 0,
+            totalUnits: Number(h.total_units ?? h.totalUnits) || 0,
+            totalCO2: Number(h.total_co2 ?? h.totalCO2) || 0,
+            deviceCount: Number(h.device_count ?? h.deviceCount) || 0,
+            rooms: roomsParsed,
+            state: h.state,
+            ratePerUnit: Number(h.rate_per_unit ?? h.ratePerUnit) || 0,
+          } as any;
+        });
+
+        setBillHistory(safeHistory as any);
+        /* eslint-enable @typescript-eslint/no-explicit-any */
       }
     } catch (error) {
       console.error('Error loading from Supabase:', error);
@@ -112,42 +156,50 @@ export const CalculatorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [billHistory]);
 
   const addRoom = async (room: Room) => {
-    setRooms([...rooms, room]);
+    setRooms((prev) => [...prev, room]);
     
     // Sync to Supabase
     try {
-      await supabase.from('rooms').insert({
+      const { data, error } = await supabase.from('rooms').insert({
         id: room.id,
         user_id: userId,
         name: room.name,
         icon: room.icon,
       });
+
+      if (error) {
+        console.error('Error saving room to Supabase:', error);
+      } else {
+        console.info('Room saved to Supabase:', data);
+      }
     } catch (error) {
       console.error('Error saving room to Supabase:', error);
     }
   };
 
   const removeRoom = async (id: string) => {
-    setRooms(rooms.filter(r => r.id !== id));
+    setRooms((prev) => prev.filter(r => r.id !== id));
     if (currentRoomId === id) {
       setCurrentRoomId(null);
     }
     
     // Sync to Supabase
     try {
-      await supabase.from('rooms').delete().eq('id', id);
-      await supabase.from('devices').delete().eq('room_id', id);
+      const { error: roomsError } = await supabase.from('rooms').delete().eq('id', id);
+      if (roomsError) console.error('Error deleting room from Supabase:', roomsError);
+      const { error: devicesError } = await supabase.from('devices').delete().eq('room_id', id);
+      if (devicesError) console.error('Error deleting devices for room from Supabase:', devicesError);
     } catch (error) {
       console.error('Error deleting room from Supabase:', error);
     }
   };
 
   const updateRoom = (id: string, room: Room) => {
-    setRooms(rooms.map(r => r.id === id ? room : r));
+    setRooms((prev) => prev.map(r => r.id === id ? room : r));
   };
 
   const addDeviceToRoom = async (roomId: string, device: Device) => {
-    setRooms(rooms.map(room => {
+    setRooms((prev) => prev.map(room => {
       if (room.id === roomId) {
         return {
           ...room,
@@ -159,7 +211,7 @@ export const CalculatorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     // Sync to Supabase
     try {
-      await supabase.from('devices').insert({
+      const { data, error } = await supabase.from('devices').insert({
         id: device.id,
         room_id: roomId,
         name: device.name,
@@ -169,13 +221,16 @@ export const CalculatorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         category: device.category,
         is_custom: device.isCustom || false,
       });
+
+      if (error) console.error('Error saving device to Supabase:', error);
+      else console.info('Device saved to Supabase:', data);
     } catch (error) {
       console.error('Error saving device to Supabase:', error);
     }
   };
 
   const removeDeviceFromRoom = async (roomId: string, deviceId: string) => {
-    setRooms(rooms.map(room => {
+    setRooms((prev) => prev.map(room => {
       if (room.id === roomId) {
         return {
           ...room,
@@ -187,7 +242,8 @@ export const CalculatorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     // Sync to Supabase
     try {
-      await supabase.from('devices').delete().eq('id', deviceId);
+      const { error } = await supabase.from('devices').delete().eq('id', deviceId);
+      if (error) console.error('Error deleting device from Supabase:', error);
     } catch (error) {
       console.error('Error deleting device from Supabase:', error);
     }
