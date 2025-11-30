@@ -3,15 +3,6 @@ import { useCalculator } from '../../hooks/useCalculator';
 import { PieChart, Pie, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Download, TrendingUp, Zap, DollarSign, Leaf } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-
-// Extend jsPDF type
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: Record<string, unknown>) => jsPDF;
-  }
-}
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -84,98 +75,7 @@ const BillSummary: React.FC = () => {
     XLSX.writeFile(wb, 'energy-report.xlsx');
   };
 
-  const exportToPDF = () => {
-    const doc = new jsPDF();
 
-    // Title
-    doc.setFontSize(18);
-    doc.text('Energy Consumption Report', 14, 22);
-
-    // Summary
-    doc.setFontSize(12);
-    doc.text(`State: ${selectedState}`, 14, 35);
-    doc.text(`Rate per Unit: ₹${ratePerUnit}`, 14, 42);
-    doc.text(`Total Monthly Units: ${totalUnits.toFixed(2)} kWh`, 14, 49);
-    doc.text(`Total Monthly Bill: ₹${totalMonthlyBill.toFixed(2)}`, 14, 56);
-    doc.text(`Total CO2 Emissions: ${totalCO2.toFixed(2)} kg/month`, 14, 63);
-
-    // Device table
-    const tableData = devices.map((device) => {
-      const monthlyUnits = (device.wattage * device.hoursPerDay * 30) / 1000;
-      const monthlyCost = monthlyUnits * ratePerUnit;
-      const co2 = monthlyUnits * 0.82;
-      return [
-        device.name,
-        device.brand,
-        device.category,
-        `${device.wattage}W`,
-        `${device.hoursPerDay}h`,
-        `${monthlyUnits.toFixed(2)} kWh`,
-        `₹${monthlyCost.toFixed(2)}`,
-        `${co2.toFixed(2)} kg`,
-      ];
-    });
-
-    doc.autoTable({
-      startY: 72,
-      head: [['Device', 'Brand', 'Category', 'Wattage', 'Hours/Day', 'Monthly Units', 'Monthly Cost', 'CO2 (kg)']],
-      body: tableData,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [34, 197, 94] },
-    });
-
-    doc.save('energy-report.pdf');
-  };
-
-  const exportFullPageToPDF = async () => {
-    try {
-      // Lazy-load html2canvas to avoid import-time side-effects during server/build
-      const html2canvas = (await import('html2canvas')).default;
-
-      const root = document.documentElement;
-      // Temporarily set background to white for better capture
-      const previousBg = root.style.backgroundColor;
-      root.style.backgroundColor = '#ffffff';
-
-      const element = document.body;
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true, windowWidth: document.documentElement.scrollWidth, windowHeight: document.documentElement.scrollHeight });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-      if (pdfHeight <= pdf.internal.pageSize.getHeight()) {
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      } else {
-        // Split into multiple pages
-        let remainingHeight = imgProps.height;
-        const pageHeightPx = (imgProps.width * pdf.internal.pageSize.getHeight()) / pdfWidth;
-        let position = 0;
-
-        while (remainingHeight > 0) {
-          const canvasPage = document.createElement('canvas');
-          canvasPage.width = canvas.width;
-          canvasPage.height = Math.min(canvas.height - position, Math.round(pageHeightPx));
-          const ctx = canvasPage.getContext('2d');
-          if (!ctx) break;
-          ctx.drawImage(canvas, 0, position, canvas.width, canvasPage.height, 0, 0, canvasPage.width, canvasPage.height);
-          const pageData = canvasPage.toDataURL('image/png');
-          pdf.addImage(pageData, 'PNG', 0, 0, pdfWidth, pdf.internal.pageSize.getHeight());
-          remainingHeight -= canvasPage.height;
-          position += canvasPage.height;
-          if (remainingHeight > 0) pdf.addPage();
-        }
-      }
-
-      pdf.save('echowatt-full-report.pdf');
-      root.style.backgroundColor = previousBg;
-    } catch (err) {
-      console.error('Full page PDF export failed', err);
-      alert('Failed to export full page to PDF. Check console for details.');
-    }
-  };
 
   if (devices.length === 0) {
     return null;
@@ -198,29 +98,13 @@ const BillSummary: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={exportToExcel}
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300"
-          >
-            <Download className="w-4 h-4" />
-            Excel
-          </button>
-          <button
-            onClick={exportToPDF}
-            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300"
-          >
-            <Download className="w-4 h-4" />
-            PDF
-          </button>
-          <button
-            onClick={exportFullPageToPDF}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300"
-          >
-            <Download className="w-4 h-4" />
-            Export Full Page
-          </button>
-        </div>
+        <button
+          onClick={exportToExcel}
+          className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300"
+        >
+          <Download className="w-4 h-4" />
+          Export to Excel
+        </button>
       </div>
 
       {/* Summary Cards */}
