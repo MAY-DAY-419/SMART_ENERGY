@@ -67,7 +67,7 @@ const SolarEstimator: React.FC = () => {
   const fmt = (n: number) => Number.isFinite(n) ? n.toFixed(2) : '—';
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-gray-900 dark:text-white">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
           <svg className="w-6 h-6 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -76,7 +76,7 @@ const SolarEstimator: React.FC = () => {
         </div>
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Solar Panel Estimator</h2>
-          <p className="text-gray-600 dark:text-gray-400">Enter your bills to estimate panels, cost and payback years.</p>
+          <p className="text-gray-600 dark:text-white">Enter your bills to estimate panels, cost and payback years.</p>
         </div>
       </div>
 
@@ -149,19 +149,19 @@ const SolarEstimator: React.FC = () => {
         <div className="bg-gray-50 dark:bg-gray-900/20 p-4 rounded-lg border-2 border-transparent">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Estimated monthly consumption</div>
+              <div className="text-sm text-gray-600 dark:text-white">Estimated monthly consumption</div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{fmt(computed.monthlyKWh)} kWh</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Estimated system size</div>
+              <div className="text-sm text-gray-600 dark:text-white">Estimated system size</div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{fmt(computed.requiredKW)} kW</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Panels (≈400Wp)</div>
+              <div className="text-sm text-gray-600 dark:text-white">Panels (≈400Wp)</div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{computed.panels}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Avg sun hrs (selected)</div>
+              <div className="text-sm text-gray-600 dark:text-white">Avg sun hrs (selected)</div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{effectiveSunHours}</div>
             </div>
           </div>
@@ -175,7 +175,7 @@ const SolarEstimator: React.FC = () => {
               onChange={(e) => setManualSun(e.target.checked)}
               className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Set sun exposure manually</span>
+            <span className="text-sm text-gray-700 dark:text-white">Set sun exposure manually</span>
           </label>
 
           {manualSun && (
@@ -192,13 +192,13 @@ const SolarEstimator: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Estimated cost (rough)</div>
+          <div className="text-sm text-gray-600 dark:text-white">Estimated cost (rough)</div>
           <div className="text-lg font-semibold text-gray-900 dark:text-white">₹{fmt(computed.costLow)} — ₹{fmt(computed.costHigh)}</div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">Estimated payback</div>
+          <div className="text-sm text-gray-600 dark:text-white">Estimated payback</div>
           <div className="text-sm text-gray-900 dark:text-white">{computed.paybackLow === Infinity ? '—' : `${fmt(computed.paybackLow)} years`} — {computed.paybackHigh === Infinity ? '—' : `${fmt(computed.paybackHigh)} years`}</div>
         </div>
 
-        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+        <div className="text-xs text-gray-500 dark:text-white mt-2">
           These are ballpark estimates. Costs and production depend on site, orientation, shading, subsidies and installation quality.
         </div>
       </div>
