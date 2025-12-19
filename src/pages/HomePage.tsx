@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Zap, TrendingDown, Lightbulb, ArrowRight, Leaf, Battery, Sun } from 'lucide-react';
+import SolarEstimator from '../components/calculator/SolarEstimator';
 
 const HomePage: React.FC = () => {
+  const [solarOpen, setSolarOpen] = useState(false);
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -47,11 +49,16 @@ const HomePage: React.FC = () => {
               >
                 Learn More
               </Link>
+              <button
+                onClick={() => setSolarOpen(true)}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto"
+              >
+                Solar Estimator
+              </button>
             </div>
           </div>
         </div>
       </section>
-
       {/* Mottos Section */}
       <section className="py-20 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-6">
@@ -166,6 +173,19 @@ const HomePage: React.FC = () => {
           </Link>
         </div>
       </section>
+      {/* Solar Estimator Modal */}
+      {solarOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setSolarOpen(false)} />
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg max-w-3xl w-full p-6 z-10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Solar Estimator</h3>
+              <button onClick={() => setSolarOpen(false)} className="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700">Close</button>
+            </div>
+            <SolarEstimator />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

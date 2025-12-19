@@ -6,3 +6,4 @@ export { default as CarbonFootprint } from './CarbonFootprint';
 export { default as BillComparison } from './BillComparison';
 export { default as AIOptimization } from './AIOptimization';
 export { default as IoTIntegration } from './IoTIntegration';
+export { default as SolarEstimator } from './SolarEstimator';

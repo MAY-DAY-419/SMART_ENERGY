@@ -8,6 +8,7 @@ import CarbonFootprint from '../components/calculator/CarbonFootprint';
 import BillComparison from '../components/calculator/BillComparison';
 import AIOptimization from '../components/calculator/AIOptimization';
 import IoTIntegration from '../components/calculator/IoTIntegration';
+import SolarEstimator from '../components/calculator/SolarEstimator';
 import { CheckCircle2 } from 'lucide-react';
 
 const CalculatorPage: React.FC = () => {
@@ -121,6 +122,7 @@ const CalculatorPage: React.FC = () => {
                 <BillSummary />
                 <CarbonFootprint />
                 <BillComparison />
+                <SolarEstimator />
                 <AIOptimization />
                 <IoTIntegration />
                 <div className="mt-6">
